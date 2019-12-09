@@ -35,24 +35,25 @@ import numpy as np
 from PIL import ImageFont, ImageDraw, Image
 import cv2
  
-img = np.zeros((100,600,3),np.uint8)#까만 판
-b,g,r,a = 220,255,0,0
+#img = np.zeros((100,600,3),np.uint8)#까만 판
+b,g,r,a = 0,0,0,0#까만색 글씨
 
 fontpath = "fonts/gulim.ttc"
 font = ImageFont.truetype(fontpath, 20)
 
 #what=["미안해 내가 말실수를 한 것 같아ㅠㅠㅠㅠ용서해줄래?ㅠㅠㅠ","니가 슬프니 나도 슬퍼졌어","미안해"] 
-def showing(what):
+def showing(what,reaction,img):
     #global img
     img_pil = Image.fromarray(img)
     draw = ImageDraw.Draw(img_pil)
-    draw.text((20, 30),  "$이렇게 말해보세요!$\n"+what, font=font, fill=(b,g,r,a))
+    
+    draw.text((300, 30),  "$이렇게 말해보세요!$ ("+reaction+")\n"+what, font=font, fill=(b,g,r,a))#여기 가로세로 좌표 맞음
      
     image = np.array(img_pil)
     #cv2.putText(img,  "by Dip2K", (250,120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (b,g,r), 1, cv2.LINE_AA)
-     
-    cv2.imshow("Coaching Bot ★얼얘★", image)
-    cv2.waitKey(1000)
+    #print("잉?")
+    cv2.imshow("Coaching Bot", image)
+    cv2.waitKey(50)
 
 #for i in range(3):
 #showing(what[1])
