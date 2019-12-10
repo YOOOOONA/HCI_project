@@ -54,6 +54,7 @@ def showing(what,reaction,img):
     #print("잉?")
     cv2.imshow("Coaching Bot", image)
     cv2.waitKey(50)
+    return image
 
 #for i in range(3):
 #showing(what[1])

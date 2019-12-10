@@ -23,12 +23,17 @@ from PIL import ImageFont, ImageDraw, Image
 from datetime import datetime as dt
 
 b,g,r,a = 0,0,0,0#까만색 글씨
+red=(0,0,255,0)
+blue=(255,0,0,0)
+green=(0,255,0,0)
 
 fontpath = "fonts/gulim.ttc"
 font = ImageFont.truetype(fontpath, 15)
 answ=""
+#emt3=["","",""]
 
 def run():
+    #global emt3
     '''
     ap = argparse.ArgumentParser()
     ap.add_argument('-c', '--cascade', required = True)
@@ -63,11 +68,12 @@ def run():
     
     #count={'Angry':0, 'Disgust':0, 'Fear':0, 'Happy':0, 'Sad':0, 'Surprise':0,'Neutral':0}
     count_ko={'분노':0, '역겨움':0, '두려움':0, '행복':0, '슬픔':0, '놀람':0,'무표정':0}
-    labels=[]
+    labels=["","","",""]
+    frame_cnt=0
+    what=""#################
     while True:
-        
         (grabbed, frame) = camera.read()
-        
+        frame_cnt+=1
         if args.get('video') and not grabbed:
             break
         st=dt.now()
@@ -85,7 +91,7 @@ def run():
                                             minNeighbors = 5, minSize = (30, 30),
                                             flags = cv2.CASCADE_SCALE_IMAGE)
     
-        if len(rects) >0:
+        if len(rects) > 0 :
             #face area
             rect = sorted(rects, reverse=True, key = lambda x: (x[2] - x[0]) * (x[3] - x[1]))[0]
             (fX, fY, fW, fH) = rect
@@ -113,13 +119,29 @@ def run():
                 img_pil = Image.fromarray(frameClone)
                 draw = ImageDraw.Draw(img_pil)
                 draw.text((10, (i * 35) + 18),  text, font=font, fill=(b,g,r,a))#여기 가로세로 좌표 맞음
-                draw.text((fX, fY-18),  label, font=font, fill=(220,255,0,a))#여기 가로세로 좌표 맞음
-                frameClone = np.array(img_pil)
+                if(label=='행복'):
+                    draw.text((fX, fY-18),  label, font=font, fill=green)#여기 가로세로 좌표 맞음
+                    frameClone = np.array(img_pil)
+                    cv2.rectangle(frameClone, (fX, fY), (fX+fW, fY+fH),(0,255,0), 2)#사각형부분
+                elif(label=='분노'):
+                    draw.text((fX, fY-18),  label, font=font, fill=red)
+                    frameClone = np.array(img_pil)
+                    cv2.rectangle(frameClone, (fX, fY), (fX+fW, fY+fH),(0,0,255), 2)#사각형부분
+                elif(label=='슬픔'):
+                    draw.text((fX, fY-18),  label, font=font, fill=blue)
+                    frameClone = np.array(img_pil)
+                    cv2.rectangle(frameClone, (fX, fY), (fX+fW, fY+fH),(255,0,0), 2)#사각형부분
+                else:
+                    draw.text((fX, fY-18),  label, font=font, fill=(220,255,0,a))
+                    frameClone = np.array(img_pil)
+                    cv2.rectangle(frameClone, (fX, fY), (fX+fW, fY+fH),(220,255,0), 2)#사각형부분
+                
     
                 #cv2.putText(frameClone, text, (10, (i * 35) + 23),cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0,0,0), 2)
     
                 #cv2.putText(frameClone, label, (fX, fY-10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (220,255,0), 2)#frame사각형에 감정멘트 부분
-                cv2.rectangle(frameClone, (fX, fY), (fX+fW, fY+fH),(220,255,0), 2)#사각형부분
+                
+                
     
                 #cv2.imshow("face", frameClone)
                 #cv2.imshow("prob", canvas)
@@ -129,10 +151,11 @@ def run():
             if label!="무표정":#뉴트럴은 무시한다.
                 #3프레임이상 나온 감정만 리스트에 넣는다.근데 리스트에 넣고나서도 반복되면 넣지 않는다.
                 count_ko[label]+=1
-                if count_ko[label]==3:#세번 나타나면
+                if count_ko[label]==10:#세번 나타나면
                     labels.append(label)#리스트에 넣고
                     count_ko[label]=0#카운트를0으로 만듦..다시 세번 나와야 리스트에 넣어질 수 있고
             emt3=labels[-4:-1]#``그렇게 거른 감정 중 최근 세개를 받아서 처리하자
+            '''
             reaction=""
             if len(emt3)!=0:
                 if emt3[-1]=='행복':
@@ -141,19 +164,20 @@ def run():
                     reaction="Oh no"
                 elif emt3[-1]=='분노':
                     reaction="OMG! Be careful"
-            
-                
-            #what=flask_test.get_answer(mention(emt3),'a')
-            what="이이이잉ㅇ"
-            print("상대방: "+mention(emt3)+"/ 챗봇이 추천하는 내 대답: "+what)
+            '''
+            if frame_cnt%5==0  :
+                what=flask_test.get_answer(mention(emt3),'a')
+            #what="이이이잉ㅇ"
+                print("상대방: "+mention(emt3)+"/ 챗봇이 추천하는 내 대답: "+what)
             #print("상대방: "+mention(emt3))
             #멀티 쓰레딩..왜 화면이 안나올까? 출력은 잘됨
             '''
-            t=threading.Thread(target=proto.showing,args=(what,frameClone))
+            t=threading.Thread(target=proto.showing,args=(what,reaction,frameClone))
             t.daemon=True
             t.start()
             '''
-            proto.showing(what,reaction,frameClone)#한 프레임에 showing하기 성공!
+            proto.showing(what,"상대의 감정변화:"+emt3[0]+"->"+emt3[1]+"->"+emt3[2],frameClone)#한 프레임에 showing하기 성공!
+        #cv2.imshow("test",frameClone)
         end=dt.now()
         print("시간차",end-st)#서버 뺴면 반의반으로 
     
@@ -164,26 +188,30 @@ def run():
 
 def mention(emt3):
     global answ
-    if emt3==['행복','행복','슬픔']:
+    if emt3==['행복','행복','슬픔'] or emt3==['행복','슬픔','슬픔']:
         answ="나 행복했는데 너 때문에 슬퍼졌어"
-    elif emt3==['행복','행복','분노']:
+    elif emt3==['행복','행복','분노'] or emt3==['행복','분노','분노']:
         answ="나 행복했는데 너 때문에 화가났어"
-    elif emt3==['분노','분노','행복']:
+    elif emt3==['분노','분노','행복'] or emt3==['분노','행복','행복']:
         answ="나 화가 났었는데 너 덕분에 행복해졌어"
-    elif emt3==['슬픔','슬픔','행복']:
+    elif emt3==['분노','분노','분노'] or emt3[-3:-1]==['분노','분노'] or emt3[-3:-1]==['분노','슬픔'] or emt3[-3:-1]==['슬픔','슬픔']:
+        answ="나 화가 안풀려"    
+    elif emt3==['슬픔','슬픔','행복'] or emt3==['슬픔','행복','행복']:
         answ="나 슬펐는데 너 덕분에 행복해졌어"
-    elif emt3==['분노','분노','행복']:
+    elif emt3==['분노','분노','행복'] or emt3==['분노','행복','행복']:
         answ="나 화났었는데 너 덕분에 행복해졌어"
     #elif emt3==['행복','행복','행복']:###########
-    #    answ="행복해"                                 이거 대신에 reaction 추가해서 good이라고 칭찬해줌
-    elif emt3==['행복','행복','두려움']:
+    #    answ="행복해"                                 이거 대신에`  reaction 추가해서 good이라고 칭찬해줌
+    elif emt3==['행복','행복','두려움'] or emt3==['행복','두려움','두려움']:
         answ="나 행복했었는데 너 때문에 두려워졌어"
-    elif emt3==['두려움','두려움','행복']:
+    elif emt3==['두려움','두려움','행복'] or emt3==['두려움','행','행복']:
         answ="나 두려웠었는데 너 덕분에 행복해졌어"
     #elif emt3[1:]==['놀람','행복']:
     #    answ="나 너무 행복해!!"
-    elif emt3[1:]==['놀람','슬픔'] or emt3[1:]==['놀람','두려움']:
-        answ="나 우울해졌어"
+    elif emt3[-1]==['놀람']:
+        answ="깜짝이야"#=>많이 놀랬어?, 나때문에 놀랬어? 왜그래?
+    elif emt3[1:]==['놀람','슬픔'] or emt3[1:]==['놀람','두려움'] or emt3[1:]==['놀람','분노']:
+        answ="나 우울해졌어"#=>나떄문이야?내가 뭐 잘못말했어?기분상했어?
     else:
         answ="쉿"
     
